@@ -1,0 +1,153 @@
+Name: PHP Xero
+Author: David Pitman (dependent on the work of others - see below)
+Date: April 2010
+
+Description:
+A class for interacting with the xero (xero.com) private application API.  It could also be used for the public application API too, but it hasn't been tested with that.  More documentation for Xero can be found at http://blog.xero.com/developer/api-overview/  It is suggested you become familiar with the API before using this class, otherwise it may not make much sense to you - http://blog.xero.com/developer/api/
+
+Thanks for the Oauth* classes provided by Andy Smith, find more about them at http://oauth.googlecode.com/.  The
+OAuthSignatureMethod_Xero class was written by me, as required by the Oauth classes.  The ArrayToXML classes were sourced from wwwzealdcom's work as shown on the comment dated August 30, 2009 on this page: http://snipplr.com/view/3491/convert-php-array-to-xml-or-simple-xml-object-if-you-wish/  I made a few minor changes to that code to overcome some bugs.
+
+---
+
+License (applies to Xero and Oauth* classes):
+The MIT License
+
+Copyright (c) 2007 Andy Smith (Oauth* classes)
+Copyright (c) 2010 David Pitman (Xero class)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+---
+
+Usage Summary:
+
+Basically instantiate the Xero class with your credentials and desired output format.  Then call any of the methods as outlined in the API.  Calling an API method name as a property is the same as calling that API method with no options. Calling the API method as a method with an array as the only input param with like calling the corresponding POST or PUT API method.  You can make more complex GET requests using up to four params on the method.  If you have read the xero api documentation, it should be clear.
+
+Example Usage:
+
+<?php
+
+//include the class file
+include_once "xero.php";
+
+//define your application key and secret (find these at https://api.xero.com/Application)
+define('XERO_KEY','[APPLICATION KEY]');
+define('XERO_SECRET','[APPLICATION SECRET]');
+
+//instantiate the Xero class with your key, secret and paths to your RSA cert and key
+//the last argument is optional and may be either "xml" or "json" (default)
+//"xml" will give you the result as a SimpleXMLElement object, while 'json' will give you a plain array object
+$xero = new Xero(XERO_KEY, XERO_SECRET, [path to public certificate], [path to private key] ), 'xml' );
+
+//the input format for creating a new contact see http://blog.xero.com/developer/api/contacts/ to understand more
+$new_contact = array(
+	array(
+		"Name" => "API TEST Contact",
+		"FirstName" => "TEST",
+		"LastName" => "Contact",
+		"Addresses" => array(
+			"Address" => array(
+				array(
+					"AddressType" => "POSTAL",
+					"AddressLine1" => "PO Box 100",
+					"City" => "Someville",
+					"PostalCode" => "3890"
+				),
+				array(
+					"AddressType" => "STREET",
+					"AddressLine1" => "1 Some Street",
+					"City" => "Someville",
+					"PostalCode" => "3890"
+				)
+			)
+		)
+	)
+);
+
+//the input format for creating a new invoice (or credit note) see http://blog.xero.com/developer/api/invoices/
+$new_invoice = array(
+	array(
+		"Type"=>"ACCREC",
+		"Contact" => array(
+			"ContactID" => "[contact id]"
+		),
+		"Date" => "2010-04-08",
+		"DueDate" => "2010-04-30",
+		"Status" => "SUBMITTED",
+		"LineAmountTypes" => "Exclusive",
+		"LineItems"=> array(
+			"LineItem" => array(
+				array(
+					"Description" => "Just another test invoice",
+					"Quantity" => "2.0000",
+					"UnitAmount" => "250.00",
+					"AccountCode" => "200"
+				)
+			)
+		)
+	)
+);
+
+//the input format for creating a new payment see http://blog.xero.com/developer/api/payments/ to understand more
+$new_payment = array(
+	array(
+		"Invoice" => array(
+			"InvoiceNumber" => "INV-0002"
+		),
+		"Account" => array(
+			"Code" => "[account code]"
+		),
+		"Date" => "2010-04-09",
+		"Amount"=>"100.00",
+	)
+);
+
+
+//raise an invoice
+$invoice_result = $xero->Invoices( $new_invoice );
+
+//apply a payment to an invoice - the invoice must be first approved via the human interface as at April 2010
+//see http://xero.uservoice.com/forums/5528-xero-api/suggestions/72870-be-able-to-approve-and-send-invoices-via-the-api
+$payment_result = $xero->Payments( $new_payment );
+
+//get details of an account, with the name "Test Account"
+$result = $xero->Accounts(false, false, array("Name"=>"Test Account") );
+//the params above correspond to the "Optional params for GET Accounts" on http://blog.xero.com/developer/api/accounts/
+//to do a GET request, all params are optional
+//first param optional should be a boolean "false" or a string AccountID,
+//second param  should be a date/time, in any format
+//third param can be an array of filters, with array keys being filter fields (left of operand), and array values
+//being the right of operand values.  The array value can be a string or an array(operand, value), or a boolean
+//the whole third param can also be a string using the format described at
+// http://blog.xero.com/developer/api-overview/http-methods-and-filters/ in the Filters section
+//the fourth param (optional) is a string field name to order by
+//to do a POST request, the first and only param must be a multidimensional array as shown above in $new_contact etc.
+
+//get details of all accounts
+$all_accounts = $xero->Accounts;
+
+//echo the results back
+if ( is_object($result) ) {
+//use this to see the source code if the $format option is "xml"
+echo htmlentities($result->asXML()) . "<hr />";
+} else {
+//use this to see the source code if the $format option is "json" or not specified
+echo json_encode($result) . "<hr />";
+}
