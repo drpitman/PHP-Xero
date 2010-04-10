@@ -181,8 +181,8 @@ class Xero {
 		if ( !file_exists($this->public_cert) || !file_exists($this->private_key) ) {
 			return false;
 		}
-		$this->consumer = new OAuthConsumer(XERO_KEY, XERO_SECRET);
-		$this->token = new OAuthToken(XERO_KEY, XERO_SECRET);
+		$this->consumer = new OAuthConsumer($this->key, $this->secret);
+		$this->token = new OAuthToken($this->key, $this->secret);
 		$this->signature_method  = new OAuthSignatureMethod_Xero($this->public_cert, $this->private_key);
 		$this->format = ( in_array($format, array('xml','json') ) ) ? $format : 'json' ;
 	}
