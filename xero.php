@@ -255,10 +255,11 @@ class Xero {
 				curl_setopt($ch, CURLOPT_HEADER, "If-Modified-Since: $modified_after");
 			}
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			$xero_xml = simplexml_load_string( curl_exec($ch) );
+			$temp_xero_response = curl_exec($ch);
+			$xero_xml = simplexml_load_string( $temp_xero_response );
 			curl_close($ch);
 			if ( !$xero_xml ) {
-				return false;
+				return $temp_xero_response;
 			}
 			if ( $this->format == 'xml' ) {
 				return $xero_xml;
