@@ -2,6 +2,8 @@ Name: PHP Xero
 Author: David Pitman (dependent on the work of others - see below)
 Date: April 2010
 
+Requires: PHP5+
+
 Description:
 A class for interacting with the xero (xero.com) private application API.  It could also be used for the public application API too, but it hasn't been tested with that.  More documentation for Xero can be found at http://blog.xero.com/developer/api-overview/  It is suggested you become familiar with the API before using this class, otherwise it may not make much sense to you - http://blog.xero.com/developer/api/
 
