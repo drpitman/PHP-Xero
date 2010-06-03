@@ -8,8 +8,6 @@
 	Author: David Pitman (dependent on the work of others - see below)
 	Date: April 2010
 
-        Requires: PHP5+ 
-
 	Description:
 	A class for interacting with the xero (xero.com) private application API.  It could also be used for the public application API too, but it hasn't been tested with that.  More documentation for Xero can be found at http://blog.xero.com/developer/api-overview/  It is suggested you become familiar with the API before using this class, otherwise it may not make much sense to you - http://blog.xero.com/developer/api/
 
@@ -1250,6 +1248,7 @@ class ArrayToXML
         foreach( $data as $key => $value ) {
 
             // no numeric keys in our xml please!
+	    $numeric = 0;
             if ( is_numeric( $key ) ) {
                 $numeric = 1;
                 $key = $rootNodeName;
@@ -1304,8 +1303,8 @@ class ArrayToXML
             if ( $key == 'anon' ) $key = count( $arr );
 
             // if the node is already set, put it into an array
-            if ( isset( $arr[$key] ) ) {
-                if ( !is_array( $arr[$key] ) || $arr[$key][0] == null ) $arr[$key] = array( $arr[$key] );
+            if ( array_key_exists($key, $arr) &&  isset( $arr[$key] ) ) {
+                if ( !is_array( $arr[$key] ) || !array_key_exists(0,$arr[$key]) ||  ( array_key_exists(0,$arr[$key]) && ($arr[$key][0] == null)) ) $arr[$key] = array( $arr[$key] );
                 $arr[$key][] = $node;
             } else {
                 $arr[$key] = $node;
