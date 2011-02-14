@@ -207,7 +207,12 @@ class Xero {
 		if ( !in_array($name,$valid_methods) ) {
 			return false;
 		}
+		/* Added by Nick Teagle handle curl seg_fault */
+		$xero_response = "";
+		$fsocket_test = true;
+		/* End */
 		if ( (count($arguments) == 0) || ( is_string($arguments[0]) ) || ( is_numeric($arguments[0]) ) || ( $arguments[0] === false ) ) {
+
 			//it's a GET request
 			if ( !in_array($name, $valid_get_methods) ) {
 				return false;
@@ -283,6 +288,7 @@ class Xero {
 				$xero_url = self::ENDPOINT . $method;
 				$req  = OAuthRequest::from_consumer_and_token( $this->consumer, $this->token, 'POST',$xero_url, array('xml'=>$post_body) );
 				$req->sign_request($this->signature_method , $this->consumer, $this->token);
+				$xml = $post_body;
 				$ch = curl_init();
 				curl_setopt($ch,CURLOPT_SSL_VERIFYPEER, false);
 				curl_setopt($ch, CURLOPT_URL, $xero_url);
@@ -304,9 +310,38 @@ class Xero {
 				curl_setopt($ch, CURLOPT_INFILESIZE, strlen($xml));
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 				fclose($fh);
+
+				/* Added by Nick Teagle handle curl seg_fault */
+				
+				$fp = fsockopen("ssl://api.xero.com", 443, $errno, $errstr, 30);
+				if (!$fp) {
+				    echo "$errstr ($errno)<br />\n";
+				} else {
+				    $out = "PUT /api.xro/2.0/Payments?".$req->to_postdata()." HTTP/1.1\r\n";
+				    $out .= "Host: api.xero.com\r\n";
+				    $out .= "Accept: */*\r\n";
+				    $out .= "Connection: close\r\n";
+				    $out .= "Content-Length: ".strlen($xml)."\r\n\r\n";
+					$out .= $xml;
+				  fwrite($fp, $out);
+					$tmp_str = "";
+				    while (!feof($fp)) {
+						
+				        $tmp_str .= fgets($fp);
+				    }
+				    fclose($fp);
+					$fsocket_test = false;
+				
+					$s = strpos($tmp_str, '<');
+					$xero_response = substr($tmp_str,$s);
+					/* End */
+				}
 			}
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			$xero_response = curl_exec($ch);
+			if ( $fsocket_test ) {
+				$xero_response = curl_exec($ch);
+			}
+
 			$xero_xml = simplexml_load_string( $xero_response );
 			if (!$xero_xml) {
 				return $xero_response;
