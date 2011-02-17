@@ -249,24 +249,30 @@ class Xero {
 			}
 			$req  = OAuthRequest::from_consumer_and_token( $this->consumer, $this->token, 'GET',$xero_url);
 			$req->sign_request($this->signature_method , $this->consumer, $this->token);
-			$ch = curl_init();
+			$header = array("Accept: application/".$this->format);
+            $ch = curl_init();
 			curl_setopt($ch,CURLOPT_SSL_VERIFYPEER, false);
 			curl_setopt($ch, CURLOPT_URL, $req->to_url());
-			if ( $modified_after ) {
-				curl_setopt($ch, CURLOPT_HEADER, "If-Modified-Since: $modified_after");
-			}
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt($ch, CURLOPT_HTTPGET, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, $strAgent);
+            if ($modified_after) {
+                $header[] = "If-Modified-Since: " . $modified_after;
+            }
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 			$temp_xero_response = curl_exec($ch);
 			$xero_xml = simplexml_load_string( $temp_xero_response );
 			curl_close($ch);
 			if ( !$xero_xml ) {
 				return $temp_xero_response;
 			}
-			if ( $this->format == 'xml' ) {
-				return $xero_xml;
-			} else {
-				return ArrayToXML::toArray( $xero_xml );
-			}
+			if ($this->format == 'xml') {
+                return $xero_xml;
+            } elseif ($this->format == 'pdf') {
+                return $temp_xero_response;
+            } else {
+                return ArrayToXML::toArray($xero_xml);
+            }
 		} elseif ( (count($arguments) == 1) || ( is_array($arguments[0]) ) || ( is_a( $arguments[0], 'SimpleXMLElement' ) ) ) {
 			//it's a POST or PUT request
 			if ( !(in_array($name, $valid_post_methods) || in_array($name, $valid_put_methods)) ) {
