@@ -189,20 +189,23 @@ class Xero {
 
 	public function __call($name, $arguments) {
 		$name = strtolower($name);
-		$valid_methods = array('accounts','contacts','creditnotes','currencies','invoices','organisation','payments','taxrates','trackingcategories');
-		$valid_post_methods = array('contacts','creditnotes','invoices');
-		$valid_put_methods = array('payments');
-		$valid_get_methods = array('contacts','creditnotes','invoices','accounts','currencies','organisation','taxrates','trackingcategories');
-		$methods_map = array(
-			'accounts' => 'Accounts',
-			'contacts' => 'Contacts',
-			'creditnotes' => 'CreditNotes',
-			'currencies' => 'Currencies',
-			'invoices' => 'Invoices',
-			'organisation' => 'Organisation',
-			'payments' => 'Payments',
-			'taxrates' => 'TaxRates',
-			'trackingcategories' => 'TrackingCategories'
+		$valid_methods = array('accounts', 'contacts', 'creditnotes', 'currencies', 'invoices', 'organisation', 'payments', 'taxrates', 'trackingcategories', 'items', 'journals', 'manualjournals');
+        $valid_post_methods = array('contacts', 'creditnotes', 'invoices', 'items' . 'manualjournals');
+        $valid_put_methods = array('payments', 'items', 'manualjournals');
+        $valid_get_methods = array('contacts', 'creditnotes', 'invoices', 'accounts', 'currencies', 'organisation', 'taxrates', 'trackingcategories', 'items', 'journals', 'manualjournals');
+        $methods_map = array(
+            'accounts' => 'Accounts',
+            'contacts' => 'Contacts',
+            'creditnotes' => 'CreditNotes',
+            'currencies' => 'Currencies',
+            'invoices' => 'Invoices',
+            'organisation' => 'Organisation',
+            'payments' => 'Payments',
+            'taxrates' => 'TaxRates',
+            'trackingcategories' => 'TrackingCategories',
+            'items' => 'Items',
+            'journals' => 'Journals',
+            'manualjournals' => 'ManualJournals'
 		);
 		if ( !in_array($name,$valid_methods) ) {
 			return false;
