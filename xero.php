@@ -69,7 +69,7 @@ $new_contact = array(
 		"Addresses" => array(
 			"Address" => array(
 				array(
-					"AddressType" => "POSTAL",
+					"AddressType" => "POBOX",
 					"AddressLine1" => "PO Box 100",
 					"City" => "Someville",
 					"PostalCode" => "3890"
@@ -222,7 +222,8 @@ class Xero {
 						$wv = ( $wv ) ? "%3d%3dtrue" : "%3d%3dfalse";
 					} else if ( is_array($wv) ) {
 						if ( is_bool($wv[1]) ) {
-							$wv = ($wv[1]) ? rawurlencode($wv[0]) . "true" : rawurlencode($wv[0]) . "false" ;
+						    $wv = ($wv[1]) ? rawurlencode("==") . rawurlencode($wv[0]) : rawurlencode("!=") . "%22$wv[0]%22" ;
+						//	$wv = ($wv[1]) ? rawurlencode($wv[0]) . "true" : rawurlencode($wv[0]) . "false" ;
 						} else {
 							$wv = rawurlencode($wv[0]) . "%22{$wv[1]}%22" ;
 						}
@@ -244,9 +245,13 @@ class Xero {
 			if ( $where ) {
 				$xero_url .= "?where=$where";
 			}
-			if ( $order ) {
+			if ( $order && $where ){
 				$xero_url .= "&order=$order";
+			} else if ( $order ) {
+			    $xero_url .= "?order=$order";
 			}
+			//print_r($where);
+			//print $xero_url;
 			$req  = OAuthRequest::from_consumer_and_token( $this->consumer, $this->token, 'GET',$xero_url);
 			$req->sign_request($this->signature_method , $this->consumer, $this->token);
 			$ch = curl_init();
