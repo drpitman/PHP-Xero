@@ -184,7 +184,7 @@ class Xero {
 		$this->consumer = new OAuthConsumer($this->key, $this->secret);
 		$this->token = new OAuthToken($this->key, $this->secret);
 		$this->signature_method  = new OAuthSignatureMethod_Xero($this->public_cert, $this->private_key);
-		$this->format = ( in_array($format, array('xml','json') ) ) ? $format : 'json' ;
+		$this->format = ( in_array($format, array('xml','json','pdf') ) ) ? $format : 'json' ;
 	}
 
 	public function __call($name, $arguments) {
@@ -255,6 +255,7 @@ class Xero {
 			}
 			//print_r($where);
 			//print $xero_url;
+			//print $this->format;
 			$req  = OAuthRequest::from_consumer_and_token( $this->consumer, $this->token, 'GET',$xero_url);
 			$req->sign_request($this->signature_method , $this->consumer, $this->token);
 			$header = array("Accept: application/".$this->format);
