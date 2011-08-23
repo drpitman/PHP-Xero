@@ -216,6 +216,7 @@ class Xero {
 				return false;
 			}
 			$filterid = ( count($arguments) > 0 ) ? strip_tags(strval($arguments[0])) : false;
+			date_default_timezone_set('Europe/London');
 			$modified_after = ( count($arguments) > 1 ) ? str_replace( 'X','T', date( 'Y-m-dXH:i:s', strtotime($arguments[1])) ) : false;
 			$where = ( count($arguments) > 2 ) ? $arguments[2] : false;
 			if ( is_array($where) && (count($where) > 0) ) {
@@ -263,7 +264,7 @@ class Xero {
 			curl_setopt($ch,CURLOPT_SSL_VERIFYPEER, false);
 			curl_setopt($ch, CURLOPT_URL, $req->to_url());
 			curl_setopt($ch, CURLOPT_HTTPGET, true);
-            curl_setopt($ch, CURLOPT_USERAGENT, $strAgent);
+            curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)");//$strAgent);
             if ($modified_after) {
                 $header[] = "If-Modified-Since: " . $modified_after;
             }
@@ -276,7 +277,8 @@ class Xero {
 				return $temp_xero_response;
 			}
 			if ($this->format == 'xml') {
-                return $xero_xml;
+			    $xero_xml->addChild('URL', "$xero_url");
+			    return $xero_xml;
             } elseif ($this->format == 'pdf') {
                 return $temp_xero_response;
             } else {
@@ -331,9 +333,11 @@ class Xero {
 				return false;
 			}
 			if ( $this->format == 'xml' ) {
-				return $xero_xml;
+			    $url_array = array ( "URL" => "$xero_url" );
+			    $xero_xml[] = $url_array;
+			    return $xero_xml;
 			} else {
-				return ArrayToXML::toArray( $xero_xml );
+			    return ArrayToXML::toArray( $xero_xml );
 			}
 		} else {
 			return false;
