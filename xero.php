@@ -303,10 +303,13 @@ class Xero {
 				curl_setopt($ch, CURLOPT_INFILE, $fh);
 				curl_setopt($ch, CURLOPT_INFILESIZE, strlen($xml));
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-				fclose($fh);
 			}
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 			$xero_response = curl_exec($ch);
+			if (isset($fh))
+			{
+				fclose($fh);
+			}
 			$xero_xml = simplexml_load_string( $xero_response );
 			if (!$xero_xml) {
 				return $xero_response;
