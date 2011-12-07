@@ -183,6 +183,7 @@ class Xero {
 		}
 		$this->consumer = new OAuthConsumer($this->key, $this->secret);
 		$this->token = new OAuthToken($this->key, $this->secret);
+
 		$this->signature_method  = new OAuthSignatureMethod_Xero($this->public_cert, $this->private_key);
 		$this->format = ( in_array($format, array('xml','json','pdf') ) ) ? $format : 'json' ;
 	}
@@ -277,7 +278,7 @@ class Xero {
 				return $temp_xero_response;
 			}
 			if ($this->format == 'xml') {
-			    $xero_xml->addChild('URL', "$xero_url");
+			    $xero_xml->addChild('URL', htmlspecialchars("$xero_url"));
 			    return $xero_xml;
             } elseif ($this->format == 'pdf') {
                 return $temp_xero_response;
@@ -333,8 +334,7 @@ class Xero {
 				return false;
 			}
 			if ( $this->format == 'xml' ) {
-			    $url_array = array ( "URL" => "$xero_url" );
-			    $xero_xml[] = $url_array;
+                $xero_xml->addChild('URL', "$xero_url");
 			    return $xero_xml;
 			} else {
 			    return ArrayToXML::toArray( $xero_xml );
@@ -643,6 +643,7 @@ class OAuthRequest {
    */
   public static function from_consumer_and_token($consumer, $token, $http_method, $http_url, $parameters=NULL) {
     @$parameters or $parameters = array();
+	
     $defaults = array("oauth_version" => OAuthRequest::$version,
                       "oauth_nonce" => OAuthRequest::generate_nonce(),
                       "oauth_timestamp" => OAuthRequest::generate_timestamp(),
@@ -732,12 +733,12 @@ class OAuthRequest {
   public function get_normalized_http_url() {
     $parts = parse_url($this->http_url);
 
-    $port = @$parts['port'];
+    if(isset($parts['port'])){ $port = @$parts['port']; }
     $scheme = $parts['scheme'];
     $host = $parts['host'];
     $path = @$parts['path'];
 
-    $port or $port = ($scheme == 'https') ? '443' : '80';
+    isset($port) or $port = ($scheme == 'https') ? '443' : '80';
 
     if (($scheme == 'https' && $port != '443')
         || ($scheme == 'http' && $port != '80')) {
