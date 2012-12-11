@@ -1267,8 +1267,7 @@ class ArrayToXML
             } else {
 
                 // add single node.
-                $value = htmlentities( $value );
-                $xml->addChild( $key, $value );
+                $xml->$key = $value;
             }
         }
 
