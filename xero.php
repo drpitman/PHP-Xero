@@ -272,7 +272,7 @@ class Xero {
             curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 			$temp_xero_response = curl_exec($ch);
-			$xero_xml = simplexml_load_string( $temp_xero_response );
+			if ($this->format != 'pdf') { $xero_xml = simplexml_load_string( $temp_xero_response ); }
 			curl_close($ch);
 			if ( !$xero_xml ) {
 				return $temp_xero_response;
