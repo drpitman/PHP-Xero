@@ -69,7 +69,7 @@ $new_contact = array(
 		"Addresses" => array(
 			"Address" => array(
 				array(
-					"AddressType" => "POSTAL",
+					"AddressType" => "POBOX",
 					"AddressLine1" => "PO Box 100",
 					"City" => "Someville",
 					"PostalCode" => "3890"
@@ -183,26 +183,30 @@ class Xero {
 		}
 		$this->consumer = new OAuthConsumer($this->key, $this->secret);
 		$this->token = new OAuthToken($this->key, $this->secret);
+
 		$this->signature_method  = new OAuthSignatureMethod_Xero($this->public_cert, $this->private_key);
-		$this->format = ( in_array($format, array('xml','json') ) ) ? $format : 'json' ;
+		$this->format = ( in_array($format, array('xml','json','pdf') ) ) ? $format : 'json' ;
 	}
 
 	public function __call($name, $arguments) {
 		$name = strtolower($name);
-		$valid_methods = array('accounts','contacts','creditnotes','currencies','invoices','organisation','payments','taxrates','trackingcategories');
-		$valid_post_methods = array('contacts','creditnotes','invoices');
-		$valid_put_methods = array('payments');
-		$valid_get_methods = array('contacts','creditnotes','invoices','accounts','currencies','organisation','taxrates','trackingcategories');
-		$methods_map = array(
-			'accounts' => 'Accounts',
-			'contacts' => 'Contacts',
-			'creditnotes' => 'CreditNotes',
-			'currencies' => 'Currencies',
-			'invoices' => 'Invoices',
-			'organisation' => 'Organisation',
-			'payments' => 'Payments',
-			'taxrates' => 'TaxRates',
-			'trackingcategories' => 'TrackingCategories'
+		$valid_methods = array('accounts', 'contacts', 'creditnotes', 'currencies', 'invoices', 'organisation', 'payments', 'taxrates', 'trackingcategories', 'items', 'journals', 'manualjournals');
+        $valid_post_methods = array('contacts', 'creditnotes', 'invoices', 'items' . 'manualjournals');
+        $valid_put_methods = array('payments', 'items', 'manualjournals');
+        $valid_get_methods = array('contacts', 'creditnotes', 'invoices', 'accounts', 'currencies', 'organisation', 'taxrates', 'trackingcategories', 'items', 'journals', 'manualjournals');
+        $methods_map = array(
+            'accounts' => 'Accounts',
+            'contacts' => 'Contacts',
+            'creditnotes' => 'CreditNotes',
+            'currencies' => 'Currencies',
+            'invoices' => 'Invoices',
+            'organisation' => 'Organisation',
+            'payments' => 'Payments',
+            'taxrates' => 'TaxRates',
+            'trackingcategories' => 'TrackingCategories',
+            'items' => 'Items',
+            'journals' => 'Journals',
+            'manualjournals' => 'ManualJournals'
 		);
 		if ( !in_array($name,$valid_methods) ) {
 			return false;
@@ -213,6 +217,7 @@ class Xero {
 				return false;
 			}
 			$filterid = ( count($arguments) > 0 ) ? strip_tags(strval($arguments[0])) : false;
+			date_default_timezone_set('Europe/London');
 			$modified_after = ( count($arguments) > 1 ) ? str_replace( 'X','T', date( 'Y-m-dXH:i:s', strtotime($arguments[1])) ) : false;
 			$where = ( count($arguments) > 2 ) ? $arguments[2] : false;
 			if ( is_array($where) && (count($where) > 0) ) {
@@ -222,7 +227,8 @@ class Xero {
 						$wv = ( $wv ) ? "%3d%3dtrue" : "%3d%3dfalse";
 					} else if ( is_array($wv) ) {
 						if ( is_bool($wv[1]) ) {
-							$wv = ($wv[1]) ? rawurlencode($wv[0]) . "true" : rawurlencode($wv[0]) . "false" ;
+						    $wv = ($wv[1]) ? rawurlencode("==") . rawurlencode($wv[0]) : rawurlencode("!=") . "%22$wv[0]%22" ;
+						//	$wv = ($wv[1]) ? rawurlencode($wv[0]) . "true" : rawurlencode($wv[0]) . "false" ;
 						} else {
 							$wv = rawurlencode($wv[0]) . "%22{$wv[1]}%22" ;
 						}
@@ -244,29 +250,41 @@ class Xero {
 			if ( $where ) {
 				$xero_url .= "?where=$where";
 			}
-			if ( $order ) {
+			if ( $order && $where ){
 				$xero_url .= "&order=$order";
+			} else if ( $order ) {
+			    $xero_url .= "?order=$order";
 			}
+			//print_r($where);
+			//print $xero_url;
+			//print $this->format;
 			$req  = OAuthRequest::from_consumer_and_token( $this->consumer, $this->token, 'GET',$xero_url);
 			$req->sign_request($this->signature_method , $this->consumer, $this->token);
-			$ch = curl_init();
+			$header = array("Accept: application/".$this->format);
+            $ch = curl_init();
 			curl_setopt($ch,CURLOPT_SSL_VERIFYPEER, false);
 			curl_setopt($ch, CURLOPT_URL, $req->to_url());
-			if ( $modified_after ) {
-				curl_setopt($ch, CURLOPT_HEADER, "If-Modified-Since: $modified_after");
-			}
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt($ch, CURLOPT_HTTPGET, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)");//$strAgent);
+            if ($modified_after) {
+                $header[] = "If-Modified-Since: " . $modified_after;
+            }
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 			$temp_xero_response = curl_exec($ch);
-			$xero_xml = simplexml_load_string( $temp_xero_response );
+			if ($this->format != 'pdf') { $xero_xml = simplexml_load_string( $temp_xero_response ); }
 			curl_close($ch);
 			if ( !$xero_xml ) {
 				return $temp_xero_response;
 			}
-			if ( $this->format == 'xml' ) {
-				return $xero_xml;
-			} else {
-				return ArrayToXML::toArray( $xero_xml );
-			}
+			if ($this->format == 'xml') {
+			    $xero_xml->addChild('URL', htmlspecialchars("$xero_url"));
+			    return $xero_xml;
+            } elseif ($this->format == 'pdf') {
+                return $temp_xero_response;
+            } else {
+                return ArrayToXML::toArray($xero_xml);
+            }
 		} elseif ( (count($arguments) == 1) || ( is_array($arguments[0]) ) || ( is_a( $arguments[0], 'SimpleXMLElement' ) ) ) {
 			//it's a POST or PUT request
 			if ( !(in_array($name, $valid_post_methods) || in_array($name, $valid_put_methods)) ) {
@@ -316,9 +334,10 @@ class Xero {
 				return false;
 			}
 			if ( $this->format == 'xml' ) {
-				return $xero_xml;
+                $xero_xml->addChild('URL', "$xero_url");
+			    return $xero_xml;
 			} else {
-				return ArrayToXML::toArray( $xero_xml );
+			    return ArrayToXML::toArray( $xero_xml );
 			}
 		} else {
 			return false;
@@ -624,6 +643,7 @@ class OAuthRequest {
    */
   public static function from_consumer_and_token($consumer, $token, $http_method, $http_url, $parameters=NULL) {
     @$parameters or $parameters = array();
+	
     $defaults = array("oauth_version" => OAuthRequest::$version,
                       "oauth_nonce" => OAuthRequest::generate_nonce(),
                       "oauth_timestamp" => OAuthRequest::generate_timestamp(),
@@ -713,12 +733,12 @@ class OAuthRequest {
   public function get_normalized_http_url() {
     $parts = parse_url($this->http_url);
 
-    $port = @$parts['port'];
+    if(isset($parts['port'])){ $port = @$parts['port']; }
     $scheme = $parts['scheme'];
     $host = $parts['host'];
     $path = @$parts['path'];
 
-    $port or $port = ($scheme == 'https') ? '443' : '80';
+    isset($port) or $port = ($scheme == 'https') ? '443' : '80';
 
     if (($scheme == 'https' && $port != '443')
         || ($scheme == 'http' && $port != '80')) {
