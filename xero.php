@@ -189,20 +189,23 @@ class Xero {
 
 	public function __call($name, $arguments) {
 		$name = strtolower($name);
-		$valid_methods = array('accounts','contacts','creditnotes','currencies','invoices','organisation','payments','taxrates','trackingcategories');
-		$valid_post_methods = array('contacts','creditnotes','invoices');
-		$valid_put_methods = array('payments');
-		$valid_get_methods = array('contacts','creditnotes','invoices','accounts','currencies','organisation','taxrates','trackingcategories');
-		$methods_map = array(
-			'accounts' => 'Accounts',
-			'contacts' => 'Contacts',
-			'creditnotes' => 'CreditNotes',
-			'currencies' => 'Currencies',
-			'invoices' => 'Invoices',
-			'organisation' => 'Organisation',
-			'payments' => 'Payments',
-			'taxrates' => 'TaxRates',
-			'trackingcategories' => 'TrackingCategories'
+		$valid_methods = array('accounts', 'contacts', 'creditnotes', 'currencies', 'invoices', 'organisation', 'payments', 'taxrates', 'trackingcategories', 'items', 'journals', 'manualjournals');
+        $valid_post_methods = array('contacts', 'creditnotes', 'invoices', 'items' . 'manualjournals');
+        $valid_put_methods = array('payments', 'items', 'manualjournals');
+        $valid_get_methods = array('contacts', 'creditnotes', 'invoices', 'accounts', 'currencies', 'organisation', 'taxrates', 'trackingcategories', 'items', 'journals', 'manualjournals');
+        $methods_map = array(
+            'accounts' => 'Accounts',
+            'contacts' => 'Contacts',
+            'creditnotes' => 'CreditNotes',
+            'currencies' => 'Currencies',
+            'invoices' => 'Invoices',
+            'organisation' => 'Organisation',
+            'payments' => 'Payments',
+            'taxrates' => 'TaxRates',
+            'trackingcategories' => 'TrackingCategories',
+            'items' => 'Items',
+            'journals' => 'Journals',
+            'manualjournals' => 'ManualJournals'
 		);
 		if ( !in_array($name,$valid_methods) ) {
 			return false;
@@ -249,24 +252,30 @@ class Xero {
 			}
 			$req  = OAuthRequest::from_consumer_and_token( $this->consumer, $this->token, 'GET',$xero_url);
 			$req->sign_request($this->signature_method , $this->consumer, $this->token);
-			$ch = curl_init();
+			$header = array("Accept: application/".$this->format);
+            $ch = curl_init();
 			curl_setopt($ch,CURLOPT_SSL_VERIFYPEER, false);
 			curl_setopt($ch, CURLOPT_URL, $req->to_url());
-			if ( $modified_after ) {
-				curl_setopt($ch, CURLOPT_HEADER, "If-Modified-Since: $modified_after");
-			}
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt($ch, CURLOPT_HTTPGET, true);
+            curl_setopt($ch, CURLOPT_USERAGENT, $strAgent);
+            if ($modified_after) {
+                $header[] = "If-Modified-Since: " . $modified_after;
+            }
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 			$temp_xero_response = curl_exec($ch);
 			$xero_xml = simplexml_load_string( $temp_xero_response );
 			curl_close($ch);
 			if ( !$xero_xml ) {
 				return $temp_xero_response;
 			}
-			if ( $this->format == 'xml' ) {
-				return $xero_xml;
-			} else {
-				return ArrayToXML::toArray( $xero_xml );
-			}
+			if ($this->format == 'xml') {
+                return $xero_xml;
+            } elseif ($this->format == 'pdf') {
+                return $temp_xero_response;
+            } else {
+                return ArrayToXML::toArray($xero_xml);
+            }
 		} elseif ( (count($arguments) == 1) || ( is_array($arguments[0]) ) || ( is_a( $arguments[0], 'SimpleXMLElement' ) ) ) {
 			//it's a POST or PUT request
 			if ( !(in_array($name, $valid_post_methods) || in_array($name, $valid_put_methods)) ) {
